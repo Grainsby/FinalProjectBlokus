@@ -18,6 +18,9 @@ def rotatep(pt, refpt, deg):
    return (int(round(rotatex(pt, refpt, deg))),
       int(round(rotatey(pt, refpt, deg))))
 
+# helper function for manhattan distance
+def manhattan_Distance_Between_Points(point, origin):
+   return (abs(point[0] - origin[0])) + (abs(point[1] - origin[1]))
 # The Shape class
 # Each difference game piece is a subclass of shape
 # Each has a different id and specific total amount of block (size)
@@ -32,6 +35,15 @@ class Shape:
    def set_points(self, x, y):
       self.points = []
       self.corners = []
+
+   # get the manhattan distance from the origin
+   def get_Manhattan_Distance(self, origin):
+      max = 0
+      for p in self.points:
+         dist = manhattan_Distance_Between_Points(p, origin)
+         if (dist > max):
+            max = dist
+      return dist
 
    # Create the shapes on the board, num = square index of the piece
    # pt = reference point

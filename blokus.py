@@ -78,7 +78,7 @@ class Player:
       self.score = 0 # player's current score
       self.safeMoves = {} # used to store and save safe moves for the our safe play ai
       self.turnNumber = 0 # store the number of moves in order to turn off manhattan distance
-
+      self.start = (0,0)
    # Add the player's initial pieces for a game 
    def add_pieces(self, pieces):
       random.shuffle(pieces)
@@ -91,6 +91,7 @@ class Player:
    # Set the available starting corners for players
    def start_corner(self, p):
       self.corners = set([p])
+      self.start = p
 
    # Updates player information after placing a board piece (Shape)
    # like the player's score  
@@ -194,6 +195,17 @@ class Blokus:
          or self.board.adjacent(player.id, placement)
          or not self.board.corner(player.id, placement))
 
+   # function to test if a player could play in a given spot eventually
+   def can_occupy_later(self, player, placement):
+      if self.rounds < len(self.players): # Check for starting corner
+         return not ((False in [self.board.within_bounds(pt) for pt in placement])
+            or self.board.overlap(placement)
+            or not (True in [(pt in player.corners) for pt in placement]))
+      return not ((False in [self.board.within_bounds(pt) for pt in placement])
+         or self.board.overlap(placement)
+         or self.board.adjacent(player.id, placement)
+         or not self.board.corner(player.id, placement))
+
    # Play the game with the list of player sequentially until the
    # game ended (no more pieces can be placed for any player)
    def play(self):
@@ -273,8 +285,15 @@ def Greedy_Player_Manhattan_Distance(player, game):
       piece = options[0] # get the largest piece
       possibles = player.possible_moves([piece], game)
 
+      #if (game.rounds < 10):
+         #print("first 5")
+      possibles.sort(reverse = True, key = lambda x: x.size + x.get_Manhattan_Distance(player.start))
+      #for plea in possibles:
+      #   print(plea.size + plea.get_Manhattan_Distance(player.start))
+
       if len(possibles) != 0:
-         ++player.turnNumber
+         print(player.start, possibles[0].size + possibles[0].get_Manhattan_Distance(player.start))
+         print(possibles[0].get_Manhattan_Distance(player.start))
          return random.choice(possibles)
       else:
          options.remove(piece)
@@ -310,6 +329,80 @@ def Greedy_Player_Two(player, game):
                total += (my_corners - len(opponent.corners))
             average = total / len(opponents) # average corner difference
             weights += [(possible, 2 * piece.size + average)]
+   weights.sort(key = lambda x: x[1], reverse = True) # sort by highest weight
+   # get the highest weighted placement if there are possible moves left
+   return None if len(weights) == 0 else weights[0][0]
+
+
+# the advanced greedy algorithm
+def Greedy_Player_Two_Manhattan_Distance(player, game):
+   shape_options = [p for p in player.pieces]
+   board = game.board
+   weights = [] # array of tuples, (piece's placement, weight)
+
+   for piece in shape_options:
+      possibles = player.possible_moves([piece], game)
+      if len(possibles) != 0:
+         for possible in possibles:
+            # set a test player and board to simulate a future move,
+            # then determine the average total available corners difference
+            # between the player and its opponents
+            test_players = copy.deepcopy(game.players)
+            opponents = [p for p in test_players if p.id != player.id]
+            test_board = copy.deepcopy(board)
+            test_board.update(player.id, possible.points)
+            test_player = copy.deepcopy(player)
+            test_player.update_player(possible, test_board)
+            my_corners = len(test_player.corners)
+            total = 0 # total corner difference between player and each opponent
+            for opponent in opponents:
+               opponent.corners = set([(x, y) for (x, y) in opponent.corners
+                  if test_board.state[y][x] == '_'])
+               total += (my_corners - len(opponent.corners))
+            average = total / len(opponents) # average corner difference
+            weights += [(possible, 2 * piece.size + average)]
+   weights.sort(key = lambda x: x[1], reverse = True) # sort by highest weight
+   # get the highest weighted placement if there are possible moves left
+   return None if len(weights) == 0 else weights[0][0]
+
+# Advanced Greedy Strategy: chooses an available piece based on a hueristic
+# It is based on the piece's size and the total corner difference from
+# its placement
+def Greedy_Player_Two_Safe_Spaces(player, game):
+   shape_options = [p for p in player.pieces]
+   board = game.board
+   weights = [] # array of tuples, (piece's placement, weight)
+
+   for piece in shape_options:
+      possibles = player.possible_moves([piece], game)
+      if len(possibles) != 0:
+         for possible in possibles:
+            # set a test player and board to simulate a future move,
+            # then determine the average total available corners difference
+            # between the player and its opponents
+            test_players = copy.deepcopy(game.players)
+            opponents = [p for p in test_players if p.id != player.id]
+            test_board = copy.deepcopy(board)
+            test_board.update(player.id, possible.points)
+            test_player = copy.deepcopy(player)
+            test_player.update_player(possible, test_board)
+            my_corners = len(test_player.corners)
+            total = 0 # total corner difference between player and each opponent
+            for opponent in opponents:
+               opponent.corners = set([(x, y) for (x, y) in opponent.corners
+                  if test_board.state[y][x] == '_'])
+               total += (my_corners - len(opponent.corners))
+            average = total / len(opponents) # average corner difference
+            bulian = True
+            for opponent in opponents:
+               if game.board.adjacent(opponent.id, possible.points):
+                  bulian = bulian and True
+               else:
+                  bulian = False
+            safeSpace = 0
+            if bulian:
+               safeSpace = 100
+            weights += [(possible, 2 * piece.size + average + safeSpace)]
    weights.sort(key = lambda x: x[1], reverse = True) # sort by highest weight
    # get the highest weighted placement if there are possible moves left
    return None if len(weights) == 0 else weights[0][0]
@@ -400,8 +493,8 @@ def main():
    # - print board status every round: printout
    # - total players + their strategies: *players
    # - method signature: simulate(row, col, repeat, printout, *players)
-   simulate(14, 14, 2, printout,
-      Random_Player, Random_Player)
+   simulate(14, 14, 20, printout,
+      Greedy_Player, Greedy_Player_Manhattan_Distance)
 
 
 if __name__ == '__main__':
