@@ -45,6 +45,14 @@ class Shape:
             max = dist
       return dist
 
+   def overlapping_Moves(self, opponent_move):
+      overlap = False
+      for playerPoint in self.points:
+         for opponentPoint in opponent_move.points:
+            if (playerPoint[0] == opponentPoint[0] and playerPoint[1] == opponentPoint[1]):
+               overlap = True
+               break
+      return overlap
    # Create the shapes on the board, num = square index of the piece
    # pt = reference point
    def create(self, num, pt):
