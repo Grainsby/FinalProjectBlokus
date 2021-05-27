@@ -480,7 +480,10 @@ def Greedy_Player_Two_Adjacent_Moves(player, game):
             safeSpace = 0
             if bulian:
                safeSpace = 100
-            weights += [(possible, 2 * piece.size + average + safeSpace)]
+            if (game.rounds < 14):
+               weights += [(possible, 2 * piece.size + average + possible.get_Manhattan_Distance(player.start) + safeSpace)]
+            else:
+               weights += [(possible, 2 * piece.size + average + safeSpace)]
    weights.sort(key = lambda x: x[1], reverse = True) # sort by highest weight
    # get the highest weighted placement if there are possible moves left
    return None if len(weights) == 0 else weights[0][0]
@@ -560,7 +563,7 @@ def simulate(row = 14, col = 14, repeat = 100, printout = False,
 
 
 def main():
-   printout = True
+   printout = False
    if len(sys.argv[1:]) > 0 and sys.argv[1] == 'print':
       printout = True
    print("Graham and Corey's Project Blokus Game")
@@ -572,7 +575,7 @@ def main():
    # - total players + their strategies: *players
    # - method signature: simulate(row, col, repeat, printout, *players)
    simulate(14, 14, 20, printout,
-      Greedy_Player_Safe_Spaces, Greedy_Player)
+      Greedy_Player_Two_Adjacent_Moves, Greedy_Player_Two_Manhattan_Distance)
 
 
 if __name__ == '__main__':
